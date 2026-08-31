@@ -168,6 +168,7 @@ export default function ClientsPage() {
   const [uploadStep, setUploadStep] = useState<1 | 2>(1)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadAgent, setUploadAgent] = useState("")
+  const [uploadNextDialAt, setUploadNextDialAt] = useState("")
   const [startRow, setStartRow] = useState<number>(2)
   const [endRow, setEndRow] = useState<string>("")
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
@@ -403,6 +404,7 @@ export default function ClientsPage() {
     setUploadStep(1)
     setUploadFile(null)
     setUploadAgent("")
+    setUploadNextDialAt("")
     setColumnMapping({})
     setStartRow(2)
     setEndRow("")
@@ -529,8 +531,13 @@ export default function ClientsPage() {
     })
   }
 
+  // Active (non-deactivated) agents for assignment dropdowns
+  const activeAgents = useMemo(() => agents.filter(a => (a.name || a.email) && !['deactivated'].includes((a.role || '').toLowerCase())), [agents])
+
   const renderMappingUI = (mode: "upload" | "assign") => {
-    const activeFields = mode === "assign" ? systemFields.filter(f => f !== "Assigned Agent") : systemFields;
+    // Exclude 'Assigned Agent' and 'Next Dial' from column mapping — they get dedicated inputs
+    const columnMappableFields = systemFields.filter(f => f !== "Assigned Agent" && f !== "Next Dial");
+    const activeFields = mode === "assign" ? columnMappableFields.filter(f => f !== "Assigned Agent") : columnMappableFields;
     const otherFields = activeFields.filter(f => f !== "Primary Phone");
 
     return (
@@ -555,33 +562,77 @@ export default function ClientsPage() {
           </div>
           <p className="text-xs text-muted-foreground mb-4">Select the column from your file that matches each system field.</p>
 
-          {[...phoneFields, ...otherFields].map(field => (
-            <div key={field} className="flex items-center justify-between gap-4">
-              <span className="text-sm font-medium text-slate-700 w-1/2">
-                {field} {field === "Primary Phone" && <span className="text-red-500">*</span>}
-              </span>
+          {[...phoneFields, ...otherFields].map(field => {
+            // Collect all column letters already used by OTHER fields
+            const usedByOthers = new Set(
+              Object.entries(columnMapping)
+                .filter(([f, v]) => f !== field && v)
+                .map(([, v]) => v)
+            );
 
+            return (
+              <div key={field} className="flex items-center justify-between gap-4">
+                <span className="text-sm font-medium text-slate-700 w-1/2">
+                  {field} {field === "Primary Phone" && <span className="text-red-500">*</span>}
+                </span>
+
+                <select
+                  className="flex h-10 w-1/2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                  value={columnMapping[field] || ""}
+                  onChange={(e) => {
+                    setColumnMapping(prev => ({...prev, [field]: e.target.value}));
+                  }}
+                >
+                  <option value="">— Select column —</option>
+                  {excelHeaders
+                    .filter(h => !usedByOthers.has(h.letter))
+                    .map(h => (
+                      <option key={h.letter} value={h.letter}>{h.label} ({h.letter})</option>
+                    ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* --- Dedicated inputs for Next Dial & Assigned Agent --- */}
+        <div className="space-y-4 border-t pt-6 border-slate-100">
+          <Label className="text-xs text-slate-500 uppercase tracking-wider font-bold">Additional Settings</Label>
+
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-slate-700 w-1/2">Next Dial</span>
+            <Input
+              type="datetime-local"
+              min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+              value={uploadNextDialAt}
+              onChange={(e) => setUploadNextDialAt(e.target.value)}
+              className="flex h-10 w-1/2"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-slate-700 w-1/2">Assigned Agent</span>
+            {mode === "assign" ? (
               <select
                 className="flex h-10 w-1/2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
-                value={columnMapping[field] || ""}
-                onChange={(e) => {
-                  setColumnMapping(prev => ({...prev, [field]: e.target.value}));
-                }}
+                value={uploadAgent}
+                onChange={(e) => setUploadAgent(e.target.value)}
+                required
               >
-                <option value="">— Select column —</option>
-                {excelHeaders.map(h => (
-                  <option key={h.letter} value={h.letter}>{h.label} ({h.letter})</option>
-                ))}
+                <option value="" disabled>— Select agent —</option>
+                {activeAgents.map(a => <option key={a.id} value={a.id}>{a.name || a.email}</option>)}
               </select>
-            </div>
-          ))}
-
-          {mode === "assign" && (
-            <div className="flex items-center justify-between gap-4 opacity-60 pt-2">
-              <span className="text-sm font-medium text-slate-700 w-1/2">Assigned Agent</span>
-              <Input type="text" disabled value="Auto-assigned" className="flex h-10 w-1/2 text-center font-mono text-slate-500 bg-slate-50" />
-            </div>
-          )}
+            ) : (
+              <select
+                className="flex h-10 w-1/2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                value={uploadAgent}
+                onChange={(e) => setUploadAgent(e.target.value)}
+              >
+                <option value="">— None (optional) —</option>
+                {activeAgents.map(a => <option key={a.id} value={a.id}>{a.name || a.email}</option>)}
+              </select>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1107,20 +1158,6 @@ export default function ClientsPage() {
           ) : (
             <form onSubmit={(e) => handleFinalSubmit(e, "assign")}>
               {renderMappingUI("assign")}
-
-              <div className="space-y-2 mt-8 border-t pt-6 border-slate-100">
-                <Label htmlFor="agent" className="text-sm text-slate-500 uppercase tracking-wider font-bold">Assign Mapped Clients To</Label>
-                <select
-                  id="agent"
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                  value={uploadAgent}
-                  onChange={(e) => setUploadAgent(e.target.value)}
-                >
-                  <option value="" disabled>Select an agent...</option>
-                  {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
 
               <DialogFooter className="pt-8">
                 <Button type="button" variant="ghost" onClick={() => setUploadStep(1)}>Back</Button>
