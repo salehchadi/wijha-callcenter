@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { Prisma } from '@prisma/client';
 import { UsersService } from './users.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { SessionsService } from '@/sessions/sessions.service';
@@ -189,9 +190,14 @@ describe('UsersService', () => {
       expect(updated.is_online).toBe(false);
     });
 
-    it('should throw NotFoundException for non-existent id', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.update(999, { name: 'Nope' })).rejects.toThrow('User not found');
+    it('should propagate P2025 for non-existent id (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.user.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
+      await expect(service.update(999, { name: 'Nope' })).rejects.toMatchObject({ code: 'P2025' });
     });
 
     it('should update role when allowRoleChange is true (admin)', async () => {
@@ -236,9 +242,14 @@ describe('UsersService', () => {
       expect(result.is_online).toBe(false);
     });
 
-    it('should throw NotFoundException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.deactivate(999)).rejects.toThrow('User not found');
+    it('should propagate P2025 for non-existent user (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.user.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
+      await expect(service.deactivate(999)).rejects.toMatchObject({ code: 'P2025' });
     });
   });
 
@@ -286,11 +297,16 @@ describe('UsersService', () => {
       expect(result.has_profile_image).toBe(true);
     });
 
-    it('should throw NotFoundException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+    it('should propagate P2025 for non-existent user (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.user.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
       await expect(
         service.uploadProfileImage(999, Buffer.from('x'), 'image/jpeg'),
-      ).rejects.toThrow('User not found');
+      ).rejects.toMatchObject({ code: 'P2025' });
     });
   });
 
@@ -326,9 +342,14 @@ describe('UsersService', () => {
       expect(result.has_profile_image).toBe(false);
     });
 
-    it('should throw NotFoundException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.deleteProfileImage(999)).rejects.toThrow('User not found');
+    it('should propagate P2025 for non-existent user (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.user.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
+      await expect(service.deleteProfileImage(999)).rejects.toMatchObject({ code: 'P2025' });
     });
   });
 });

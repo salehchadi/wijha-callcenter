@@ -1,5 +1,5 @@
 /**
- * Owners (Client) E2E — main coverage layer.
+ * Clients (Client) E2E — main coverage layer.
  * Boots the full app against real Postgres and sends real HTTP requests.
  */
 
@@ -8,7 +8,7 @@ import { seedTestData } from '@/test/seed';
 import { cleanupTestData } from '@/test/cleanup';
 import { login } from '@/test/e2e-helpers';
 
-describe('Owners E2E', () => {
+describe('Clients E2E', () => {
   let app: TestApp['app'];
   let prisma: TestApp['prisma'];
   let testModule: TestApp['module'];
@@ -38,9 +38,9 @@ describe('Owners E2E', () => {
     await teardownE2E({ app, prisma, module: testModule });
   });
 
-  it('POST /owners creates a full owner (201)', async () => {
+  it('POST /clients creates a full client (201)', async () => {
     const res = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: 'Mohamed Ali',
@@ -63,35 +63,35 @@ describe('Owners E2E', () => {
     expect(got.body.projects[0].project_id).toBe(projectId);
   });
 
-  it('POST /owners defaults type to OWNER when omitted (201)', async () => {
+  it('POST /clients defaults type to UNKNOWN when omitted (201)', async () => {
     const res = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ phones: [{ phone: phone() }] })
       .expect(201);
-    expect(res.body.type).toBe('OWNER');
+    expect(res.body.type).toBe('UNKNOWN');
   });
 
-  it('POST /owners with explicit LEAD type (201)', async () => {
+  it('POST /clients with explicit LEAD type (201)', async () => {
     const res = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Lead X', type: 'LEAD', phones: [{ phone: phone() }] })
       .expect(201);
     expect(res.body.type).toBe('LEAD');
   });
 
-  it('POST /owners missing phones returns 400', async () => {
+  it('POST /clients missing phones returns 400', async () => {
     await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'No Phones' })
       .expect(400);
   });
 
-  it('POST /owners invalid EG phone returns 400', async () => {
+  it('POST /clients invalid EG phone returns 400', async () => {
     await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ phones: [{ phone: '12345' }] })
       .expect(400);
@@ -102,7 +102,7 @@ describe('Owners E2E', () => {
       .post('/api/v1/owners/bulk')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        owners: [
+        clients: [
           { name: 'Bulk A', phones: [{ phone: phone() }] },
           { name: 'Bulk B', phones: [{ phone: phone() }] },
         ],
@@ -115,13 +115,13 @@ describe('Owners E2E', () => {
     await app
       .post('/api/v1/owners/bulk')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ owners: [] })
+      .send({ clients: [] })
       .expect(400);
   });
 
-  it('GET /owners returns paginated meta (200)', async () => {
+  it('GET /clients returns paginated meta (200)', async () => {
     const res = await app
-      .get('/api/v1/owners')
+      .get('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(res.body).toHaveProperty('data');
@@ -129,33 +129,33 @@ describe('Owners E2E', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /owners?type=LEAD filters by type (200)', async () => {
+  it('GET /clients?type=LEAD filters by type (200)', async () => {
     const res = await app
-      .get('/api/v1/owners?type=LEAD')
+      .get('/api/v1/clients?type=LEAD')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(res.body.data.every((o: any) => o.type === 'LEAD')).toBe(true);
   });
 
-  it('GET /owners?status=dial filters by project status (200)', async () => {
+  it('GET /clients?status=dial filters by project status (200)', async () => {
     const res = await app
-      .get('/api/v1/owners?status=dial')
+      .get('/api/v1/clients?status=dial')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('GET /owners?limit=999 caps limit at 100 (200)', async () => {
+  it('GET /clients?limit=999 caps limit at 100 (200)', async () => {
     const res = await app
-      .get('/api/v1/owners?limit=999')
+      .get('/api/v1/clients?limit=999')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(res.body.meta.limit).toBeLessThanOrEqual(100);
   });
 
-  it('GET /owners/:id returns the owner (200)', async () => {
+  it('GET /owners/:id returns the client (200)', async () => {
     const created = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Find Me', phones: [{ phone: phone() }] })
       .expect(201);
@@ -176,7 +176,7 @@ describe('Owners E2E', () => {
 
   it('PATCH /owners/:id updates fields (200)', async () => {
     const created = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Before', phones: [{ phone: phone() }] })
       .expect(201);
@@ -199,7 +199,7 @@ describe('Owners E2E', () => {
 
   it('POST /owners/:id/projects assigns to project (200)', async () => {
     const created = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Assignee', phones: [{ phone: phone() }] })
       .expect(201);
@@ -215,7 +215,7 @@ describe('Owners E2E', () => {
     expect(got.body.projects.some((p: any) => p.project_name === 'Default Project')).toBe(true);
   });
 
-  it('POST /owners/:id/projects owner not found returns 404', async () => {
+  it('POST /owners/:id/projects client not found returns 404', async () => {
     await app
       .post('/api/v1/owners/999999999/projects')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -225,7 +225,7 @@ describe('Owners E2E', () => {
 
   it('POST /owners/:id/projects project not found returns 404', async () => {
     const created = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'NoProj', phones: [{ phone: phone() }] })
       .expect(201);
@@ -247,12 +247,12 @@ describe('Owners E2E', () => {
   it('duplicate phone merges into existing client (no new row)', async () => {
     const p = phone();
     const first = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Short', phones: [{ phone: p }] })
       .expect(201);
     const second = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Much Longer Name', phones: [{ phone: p }] })
       .expect(201);
@@ -263,7 +263,7 @@ describe('Owners E2E', () => {
 
   it('DELETE /owners/:id removes the client (204)', async () => {
     const created = await app
-      .post('/api/v1/owners')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Delete Me', phones: [{ phone: phone() }] })
       .expect(201);
@@ -285,7 +285,7 @@ describe('Owners E2E', () => {
       .expect(404);
   });
 
-  it('GET /owners without token returns 401', async () => {
-    await app.get('/api/v1/owners').expect(401);
+  it('GET /clients without token returns 401', async () => {
+    await app.get('/api/v1/clients').expect(401);
   });
 });

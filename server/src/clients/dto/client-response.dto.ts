@@ -1,8 +1,10 @@
-export class OwnerPhoneResponse {
+import { ClientType } from './client-type.enum';
+
+export class ClientPhoneResponse {
   phone!: string;
 }
 
-export class OwnerInfoResponse {
+export class ClientInfoResponse {
   key!: string;
   value!: string;
 }
@@ -15,13 +17,13 @@ export class ProjectAssignmentResponse {
   last_dialed_at?: string | null;
 }
 
-export class OwnerResponseDto {
+export class ClientResponseDto {
   id!: number;
   name?: string;
-  type?: string;
+  type?: ClientType;
   next_dial_at?: string | null;
   agent_id?: number;
-  phones?: OwnerPhoneResponse[];
-  info?: OwnerInfoResponse[];
+  phones?: ClientPhoneResponse[];
+  info?: ClientInfoResponse[];
   projects?: ProjectAssignmentResponse[];
 }

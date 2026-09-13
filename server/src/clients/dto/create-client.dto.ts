@@ -3,14 +3,16 @@ import {
   IsNumber,
   IsInt,
   IsOptional,
+  IsEnum,
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OwnerPhoneDto } from './owner-phone.dto';
-import { OwnerInfoDto } from './owner-info.dto';
+import { ClientPhoneDto } from './client-phone.dto';
+import { ClientInfoDto } from './client-info.dto';
+import { ClientType } from './client-type.enum';
 
-export class CreateOwnerDto {
+export class CreateClientDto {
   @IsOptional()
   @IsString()
   name?: string;
@@ -20,8 +22,8 @@ export class CreateOwnerDto {
   project_id?: number;
 
   @IsOptional()
-  @IsString()
-  type?: string;
+  @IsEnum(ClientType)
+  type?: ClientType;
 
   @IsOptional()
   @IsInt()
@@ -29,11 +31,11 @@ export class CreateOwnerDto {
 
   @ValidateNested({ each: true })
   @ArrayMinSize(1)
-  @Type(() => OwnerPhoneDto)
-  phones!: OwnerPhoneDto[];
+  @Type(() => ClientPhoneDto)
+  phones!: ClientPhoneDto[];
 
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => OwnerInfoDto)
-  info?: OwnerInfoDto[];
+  @Type(() => ClientInfoDto)
+  info?: ClientInfoDto[];
 }

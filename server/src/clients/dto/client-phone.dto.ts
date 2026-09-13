@@ -1,6 +1,6 @@
 import { IsPhoneNumber } from 'class-validator';
 
-export class OwnerPhoneDto {
+export class ClientPhoneDto {
   @IsPhoneNumber('EG')
   phone!: string;
 }

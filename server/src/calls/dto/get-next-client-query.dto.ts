@@ -1,4 +1,5 @@
-import { IsDateString, IsNumberString, IsOptional, IsBooleanString, IsIn } from 'class-validator';
+import { IsDateString, IsNumberString, IsOptional, IsBooleanString, IsEnum } from 'class-validator';
+import { ClientType } from '@/clients/dto/client-type.enum';
 
 export class GetNextClientQueryDto {
   @IsOptional()
@@ -14,6 +15,6 @@ export class GetNextClientQueryDto {
   date?: string;
 
   @IsOptional()
-  @IsIn(['OWNER', 'LEAD', 'BOTH'])
-  type?: 'OWNER' | 'LEAD' | 'BOTH';
+  @IsEnum(ClientType)
+  type?: ClientType;
 }

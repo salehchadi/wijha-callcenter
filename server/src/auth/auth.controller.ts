@@ -7,7 +7,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/interfaces/authenticated-user.interface';
 import { RegisterUserDTO } from './dto/register.dto';
 
-@Controller()
+@Controller({ path: '/', version: ['1', '2'] })
 export class AuthController {
   constructor(private authService: AuthService) {}
 

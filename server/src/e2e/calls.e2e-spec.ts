@@ -1,6 +1,6 @@
 /**
  * Calls E2E — main coverage layer.
- * Exercises the real DB including the raw-SQL next-owner dispatch query.
+ * Exercises the real DB including the raw-SQL next-client dispatch query.
  */
 
 import { setupE2E, teardownE2E, TestApp } from '@/test/setup-e2e';
@@ -30,7 +30,7 @@ describe('Calls E2E', () => {
     if (!project) throw new Error('Seed data missing: Default Project not found');
     projectId = project.id;
     clientPhone = phone();
-    const owner = await app
+    const client = await app
       .post('/api/v1/owners')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
@@ -39,7 +39,7 @@ describe('Calls E2E', () => {
         phones: [{ phone: clientPhone }],
       })
       .expect(201);
-    clientId = owner.body.id;
+    clientId = client.body.id;
   });
 
   afterAll(async () => {
@@ -100,11 +100,11 @@ describe('Calls E2E', () => {
     expect(res.body.client_id).toBe(clientId);
     expect(res.body.status).toBe('completed');
 
-    const owner = await app
+    const client = await app
       .get(`/api/v1/owners/${clientId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    expect(owner.body.projects[0].status).toBe('completed');
+    expect(client.body.projects[0].status).toBe('completed');
   });
 
   it('POST /calls with unknown project returns 400', async () => {
@@ -152,18 +152,18 @@ describe('Calls E2E', () => {
       .expect(404);
   });
 
-  it('POST /calls/calling with mismatched client_number returns 404', async () => {
+  it('POST /calls/calling ignores client_number and updates by client_id (200)', async () => {
     await app
       .post('/api/v1/calls/calling')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ client_id: clientId, client_number: '+201000000000' })
-      .expect(404);
+      .expect(200);
   });
 
-  it('GET /calls/next returns the next dialable owner (200)', async () => {
+  it('GET /calls/next returns the next dialable client (200)', async () => {
     // Create a fresh dialable client (status 'dial', next_dial_at null)
     const dialPhone = phone();
-    const owner = await app
+    const client = await app
       .post('/api/v1/owners')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Dialable', project_id: projectId, phones: [{ phone: dialPhone }] })
@@ -174,7 +174,7 @@ describe('Calls E2E', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(res.body).not.toBeNull();
-    expect(res.body.owner.id).toBe(owner.body.id);
+    expect(res.body.client.id).toBe(client.body.id);
     expect(Array.isArray(res.body.calls)).toBe(true);
   });
 
@@ -214,11 +214,11 @@ describe('Calls E2E', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ client_id: clientId, project_id: projectId })
       .expect(200);
-    const owner = await app
+    const client = await app
       .get(`/api/v1/owners/${clientId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    expect(owner.body.projects[0].attempt_count).toBeGreaterThanOrEqual(1);
+    expect(client.body.projects[0].attempt_count).toBeGreaterThanOrEqual(1);
   });
 
   it('POST /calls/calling with client_number (200)', async () => {

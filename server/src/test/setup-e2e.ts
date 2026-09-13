@@ -7,7 +7,7 @@
  * The harness:
  *   1. Sets required environment variables (DATABASE_URL, JWT_SECRET, etc.)
  *   2. Creates a NestJS TestingModule from AppModule
- *   3. Creates a Nest application with global prefix 'api/v1' and ValidationPipe
+ *   3. Creates a Nest application with global prefix 'api' and URI versioning (mirrors main.ts)
  *   4. Connects to PostgreSQL via PrismaService
  *   5. Returns a TestApp object containing:
  *      - app: supertest agent for making HTTP requests
@@ -20,8 +20,9 @@
  *   await teardownE2E({ app, prisma, module: testModule });
  */
 
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AppModule } from '@/app.module';
 import { PrismaClient } from '@prisma/client';
@@ -68,7 +69,9 @@ export async function setupE2E(): Promise<TestApp> {
   }).compile();
 
   const app = module.createNestApplication();
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

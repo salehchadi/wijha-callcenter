@@ -3,17 +3,21 @@ info:
   title: Call Center Broker API
   version: "1.0.0"
   description: >
-    Broker API that dispatches owner leads to agent mobile devices.
-    Agents authenticate, receive owners to call, and submit call outcomes.
+    Broker API that dispatches client leads to agent mobile devices.
+    Agents authenticate, receive clients to call, and submit call outcomes.
+  license:
+    name: Proprietary
 
 servers:
   - url: https://api.server.test/api/v1
   - url: http://localhost:3000/api/v1
-    description: Local dev
+    description: Local dev v1
+  - url: https://api.server.test/api/v2
+  - url: http://localhost:3000/api/v2
+    description: Local dev v2 (clients; v1 keeps /owners path for compat)
 
 security:
   - BearerAuth: []
-  # - apiKeyAuth: []
 
 components:
   securitySchemes:
@@ -21,10 +25,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    apiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
 
   schemas:
 
@@ -34,9 +34,10 @@ components:
 
     ClientType:
       type: string
-      enum: [OWNER, LEAD, BOTH]
+      enum: [OWNER, LEAD, BOTH, UNKNOWN]
+      description: UNKNOWN is the API representation of a NULL type in the database
 
-    OwnerPhone:
+    ClientPhone:
       type: object
       required: [phone]
       properties:
@@ -44,7 +45,7 @@ components:
           type: string
           example: "+201001234567"
 
-    OwnerInfoEntry:
+    ClientInfo:
       type: object
       required: [key, value]
       properties:
@@ -55,7 +56,7 @@ components:
           type: string
           example: "29901011234567"
 
-    Owner:
+    Client:
       type: object
       required: [id]
       properties:
@@ -77,13 +78,13 @@ components:
         phones:
           type: array
           items:
-            $ref: "#/components/schemas/OwnerPhone"
+            $ref: "#/components/schemas/ClientPhone"
         info:
           type: array
           items:
-            $ref: "#/components/schemas/OwnerInfoEntry"
+            $ref: "#/components/schemas/ClientInfo"
 
-    CreateOwnerRequest:
+    CreateClientRequest:
       type: object
       required: [phones]
       properties:
@@ -99,21 +100,27 @@ components:
           type: array
           minItems: 1
           items:
-            $ref: "#/components/schemas/OwnerPhone"
+            $ref: "#/components/schemas/ClientPhone"
         info:
           type: array
           items:
-            $ref: "#/components/schemas/OwnerInfoEntry"
+            $ref: "#/components/schemas/ClientInfo"
 
-    BulkCreateOwnersRequest:
+    BulkCreateClientsRequest:
       type: object
-      required: [owners]
       properties:
+        clients:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClientRequest"
         owners:
           type: array
           minItems: 1
           items:
-            $ref: "#/components/schemas/CreateOwnerRequest"
+            $ref: "#/components/schemas/CreateClientRequest"
+          deprecated: true
+          description: Deprecated v1 alias of clients; either clients or owners must be provided
 
     Project:
       type: object
@@ -221,12 +228,15 @@ components:
           items:
             $ref: "#/components/schemas/ProjectRef"
 
-    NextOwnerResponse:
+    NextClientResponse:
       type: object
-      required: [owner, calls]
+      required: [client, calls]
       properties:
+        client:
+          $ref: "#/components/schemas/Client"
         owner:
-          $ref: "#/components/schemas/Owner"
+          $ref: "#/components/schemas/Client"
+          description: Deprecated v1 alias of client; both are returned for compatibility
         calls:
           type: array
           items:
@@ -249,14 +259,14 @@ components:
         duration:
           type: integer
 
-    PaginatedOwners:
+    PaginatedClients:
       type: object
       required: [data, meta]
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Owner"
+            $ref: "#/components/schemas/Client"
         meta:
           type: object
           required: [total, page, limit]
@@ -288,7 +298,7 @@ components:
           example: "OWNER_NOT_FOUND"
         message:
           type: string
-          example: "No owner with that ID exists"
+          example: "No client with that ID exists"
         details:
           type: object
           nullable: true
@@ -561,9 +571,9 @@ paths:
 
   /owners:
     get:
-      summary: List owners (paginated, filterable)
-      operationId: listOwners
-      tags: [owners]
+      summary: List clients (paginated, filterable)
+      operationId: listClients
+      tags: [clients]
       parameters:
         - name: project_id
           in: query
@@ -590,64 +600,64 @@ paths:
             maximum: 100
       responses:
         "200":
-          description: Paginated owner list
+          description: Paginated client list
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaginatedOwners"
+                $ref: "#/components/schemas/PaginatedClients"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
     post:
-      summary: Create a new owner
-      operationId: createOwner
-      tags: [owners]
+      summary: Create a new client
+      operationId: createClient
+      tags: [clients]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateOwnerRequest"
+              $ref: "#/components/schemas/CreateClientRequest"
       responses:
         "201":
-          description: Owner created
+          description: Client created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Owner"
+                $ref: "#/components/schemas/Client"
         "422":
           $ref: "#/components/responses/ValidationError"
 
   /owners/bulk:
     post:
-      summary: Bulk create or merge owners
-      operationId: bulkCreateOwners
-      tags: [owners]
+      summary: Bulk create or merge clients
+      operationId: bulkCreateClients
+      tags: [clients]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BulkCreateOwnersRequest"
+              $ref: "#/components/schemas/BulkCreateClientsRequest"
       responses:
         "201":
-          description: Owners created or updated
+          description: Clients created or updated
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Owner"
+                  $ref: "#/components/schemas/Client"
         "422":
           $ref: "#/components/responses/ValidationError"
 
-  /owners/{ownerId}:
+  /owners/{clientId}:
     get:
-      summary: Get a single owner with numbers and info
-      operationId: getOwner
-      tags: [owners]
+      summary: Get a single client with numbers and info
+      operationId: getClient
+      tags: [clients]
       parameters:
-        - name: ownerId
+        - name: clientId
           in: path
           required: true
           schema:
@@ -655,20 +665,20 @@ paths:
             format: int64
       responses:
         "200":
-          description: Owner detail
+          description: Client detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Owner"
+                $ref: "#/components/schemas/Client"
         "404":
           $ref: "#/components/responses/NotFound"
 
     patch:
-      summary: Update owner type or snooze (next_dial_at)
-      operationId: updateOwner
-      tags: [owners]
+      summary: Update client (name, type, agent, snooze, phones, info)
+      operationId: updateClient
+      tags: [clients]
       parameters:
-        - name: ownerId
+        - name: clientId
           in: path
           required: true
           schema:
@@ -681,6 +691,8 @@ paths:
             schema:
               type: object
               properties:
+                name:
+                  type: string
                 type:
                   $ref: "#/components/schemas/ClientType"
                 agent_id:
@@ -690,21 +702,30 @@ paths:
                   type: string
                   format: date-time
                   nullable: true
+                phones:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/ClientPhone"
+                info:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ClientInfo"
       responses:
         "200":
-          description: Updated owner
+          description: Updated client
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Owner"
+                $ref: "#/components/schemas/Client"
         "404":
           $ref: "#/components/responses/NotFound"
     delete:
-      summary: Delete an owner
-      operationId: deleteOwner
-      tags: [owners]
+      summary: Delete a client
+      operationId: deleteClient
+      tags: [clients]
       parameters:
-        - name: ownerId
+        - name: clientId
           in: path
           required: true
           schema:
@@ -712,15 +733,15 @@ paths:
             format: int64
       responses:
         "204":
-          description: Owner deleted
+          description: Client deleted
         "404":
           $ref: "#/components/responses/NotFound"
 
   /owners/statuses:
     get:
       summary: Get distinct client statuses with counts (from client_project)
-      operationId: getOwnerStatuses
-      tags: [owners]
+      operationId: getClientStatuses
+      tags: [clients]
       responses:
         "200":
           description: List of statuses with counts
@@ -733,13 +754,13 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /owners/{ownerId}/projects:
+  /owners/{clientId}/projects:
     post:
-      summary: Assign an owner to a project by project name
-      operationId: assignOwnerProject
-      tags: [owners]
+      summary: Assign a client to a project by project name
+      operationId: assignClientProject
+      tags: [clients]
       parameters:
-        - name: ownerId
+        - name: clientId
           in: path
           required: true
           schema:
@@ -757,11 +778,228 @@ paths:
                   type: string
       responses:
         "200":
-          description: Owner updated
+          description: Client updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Owner"
+                $ref: "#/components/schemas/Client"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /clients:
+    get:
+      summary: List clients (paginated, filterable) [v2]
+      operationId: listClientsV2
+      tags: [clients]
+      parameters:
+        - name: project_id
+          in: query
+          schema:
+            type: integer
+        - name: agent_id
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ClientType"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Paginated client list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedClients"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      summary: Create a new client [v2]
+      operationId: createClientV2
+      tags: [clients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientRequest"
+      responses:
+        "201":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /clients/bulk:
+    post:
+      summary: Bulk create or merge clients [v2]
+      operationId: bulkCreateClientsV2
+      tags: [clients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkCreateClientsRequest"
+      responses:
+        "201":
+          description: Clients created or updated
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /clients/{clientId}:
+    get:
+      summary: Get a single client with numbers and info [v2]
+      operationId: getClientV2
+      tags: [clients]
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Client detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      summary: Update client (name, type, agent, snooze, phones, info) [v2]
+      operationId: updateClientV2
+      tags: [clients]
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  $ref: "#/components/schemas/ClientType"
+                agent_id:
+                  type: integer
+                  nullable: true
+                next_dial_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                phones:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/ClientPhone"
+                info:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ClientInfo"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a client [v2]
+      operationId: deleteClientV2
+      tags: [clients]
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Client deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /clients/statuses:
+    get:
+      summary: Get distinct client statuses with counts (from client_project) [v2]
+      operationId: getClientStatusesV2
+      tags: [clients]
+      responses:
+        "200":
+          description: List of statuses with counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusCount"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /clients/{clientId}/projects:
+    post:
+      summary: Assign a client to a project by project name [v2]
+      operationId: assignClientProjectV2
+      tags: [clients]
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project_name]
+              properties:
+                project_name:
+                  type: string
+      responses:
+        "200":
+          description: Client updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -880,7 +1118,7 @@ paths:
   /calls/next:
     get:
       summary: Dispatch the next client to call for this agent
-      operationId: getNextOwner
+      operationId: getNextClient
       tags: [calls]
       parameters:
         - name: project_id
@@ -895,17 +1133,16 @@ paths:
             type: boolean
         - name: type
           in: query
-          description: Filter by client type. If omitted, returns both owners and leads.
+          description: Filter by client type. If omitted, returns all types.
           schema:
-            type: string
-            enum: [OWNER, LEAD , 'BOTH']
+            $ref: "#/components/schemas/ClientType"
       responses:
         "200":
           description: Next client to call with past call history
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NextOwnerResponse"
+                $ref: "#/components/schemas/NextClientResponse"
         "204":
           description: No clients available right now
         "401":
@@ -913,7 +1150,7 @@ paths:
 
   /calls/calling:
     post:
-      summary: Notify the server that the agent is currently calling an owner
+      summary: Notify the server that the agent is currently calling a client
       operationId: notifyCalling
       tags: [calls]
       requestBody:

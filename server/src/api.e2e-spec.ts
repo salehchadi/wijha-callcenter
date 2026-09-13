@@ -7,17 +7,17 @@
  * The test flow:
  *   1. Setup: Boot app via setupE2E(), seed admin user + default project
  *   2. Login: POST /api/v1/login as admin (returns Bearer token)
- *   3. Test: Create projects, create owners, run full call dispatch flow
- *   4. Teardown: Delete created projects/owners, close app, disconnect DB
+ *   3. Test: Create projects, create clients, run full call dispatch flow
+ *   4. Teardown: Delete created projects/clients, close app, disconnect DB
  *
  * Endpoint reference:
  *   - POST /api/v1/projects   → creates a project, returns 201
- *   - POST /api/v1/owners     → creates an owner, returns 201
+ *   - POST /api/v1/clients     → creates an client, returns 201
  *   - GET  /api/v1/calls/next → gets the next client to call, returns 200
  *   - POST /api/v1/calls/calling → notifies server you're calling, returns 200
  *   - POST /api/v1/calls      → submits call outcome, returns 201
  *   - DELETE /api/v1/projects/:id → deletes a project, returns 204
- *   - DELETE /api/v1/owners/:id   → deletes an owner, returns 204
+ *   - DELETE /api/v1/owners/:id   → deletes an client, returns 204
  */
 
 import { setupE2E, teardownE2E, TestApp } from '@/test/setup-e2e';
@@ -29,7 +29,7 @@ describe('API Integration Tests (E2E)', () => {
   let testModule: TestApp['module'];
   let token: string;
   const createdProjects: number[] = [];
-  const createdOwners: number[] = [];
+  const createdClients: number[] = [];
 
   /** Generates a unique Egyptian phone number using current timestamp */
   function uniquePhone(): string {
@@ -53,7 +53,7 @@ describe('API Integration Tests (E2E)', () => {
   });
 
   afterAll(async () => {
-    // Cleanup: delete created projects and owners in reverse order
+    // Cleanup: delete created projects and clients in reverse order
     for (const projectId of [...createdProjects].reverse()) {
       try {
         await app.delete(`/api/v1/projects/${projectId}`)
@@ -63,9 +63,9 @@ describe('API Integration Tests (E2E)', () => {
       }
     }
 
-    for (const ownerId of [...createdOwners].reverse()) {
+    for (const clientId of [...createdClients].reverse()) {
       try {
-        await app.delete(`/api/v1/owners/${ownerId}`)
+        await app.delete(`/api/v1/owners/${clientId}`)
           .set('Authorization', `Bearer ${token}`);
       } catch {
         // ignore cleanup errors
@@ -91,11 +91,11 @@ describe('API Integration Tests (E2E)', () => {
   });
 
   /**
-   * Input: POST /api/v1/owners — creates 2 owners with unique phone numbers
+   * Input: POST /api/v1/clients — creates 2 clients with unique phone numbers
    *   under a newly created project
    * Expected: HTTP 201 for each, response body contains numeric `id`
    */
-  test('should create owners', async () => {
+  test('should create clients', async () => {
     const projectRes = await app.post('/api/v1/projects')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: `test-project-${Date.now()}` })
@@ -104,23 +104,23 @@ describe('API Integration Tests (E2E)', () => {
     createdProjects.push(projectId);
 
     for (let i = 0; i < 2; i += 1) {
-      const res = await app.post('/api/v1/owners')
+      const res = await app.post('/api/v1/clients')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          name: `test-owner-${Date.now()}-${i}`,
+          name: `test-client-${Date.now()}-${i}`,
           project_id: projectId,
           phones: [{ phone: uniquePhone() }],
         })
         .expect(201);
       expect(res.body.id).toBeDefined();
-      createdOwners.push(res.body.id);
+      createdClients.push(res.body.id);
     }
   });
 
   /**
    * Full call dispatch workflow:
    *   1. Create a project
-   *   2. Create 2 owners under that project
+   *   2. Create 2 clients under that project
    *   3. GET /calls/next → get next client to call
    *   4. POST /calls/calling → notify server you're calling
    *   5. POST /calls → submit call outcome (status: 'answered')
@@ -135,17 +135,17 @@ describe('API Integration Tests (E2E)', () => {
     const projectId = projectRes.body.id;
     createdProjects.push(projectId);
 
-    // Create 2 owners so GET /calls/next has a client to dispatch
+    // Create 2 clients so GET /calls/next has a client to dispatch
     for (let i = 0; i < 2; i += 1) {
-      const res = await app.post('/api/v1/owners')
+      const res = await app.post('/api/v1/clients')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          name: `test-owner-${Date.now()}-${i}`,
+          name: `test-client-${Date.now()}-${i}`,
           project_id: projectId,
           phones: [{ phone: uniquePhone() }],
         })
         .expect(201);
-      createdOwners.push(res.body.id);
+      createdClients.push(res.body.id);
     }
 
     // Step 3: Get the next client to call
@@ -153,11 +153,11 @@ describe('API Integration Tests (E2E)', () => {
       .set('Authorization', `Bearer ${token}`);
 
     // If no next client available, skip the call flow (not an error)
-    if (next.status !== 200 || !next.body?.owner) {
+    if (next.status !== 200 || !next.body?.client) {
       return;
     }
 
-    const clientId = next.body.owner.id;
+    const clientId = next.body.client.id;
 
     // Step 4: Notify the server we're calling this client
     await app.post('/api/v1/calls/calling')

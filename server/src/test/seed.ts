@@ -3,7 +3,7 @@
  *
  * Inserts minimal seed data needed by all E2E tests:
  *   - An admin user (admin1@gmail.com / admin123) for authentication
- *   - A default project ('Default Project') for owner/call associations
+ *   - A default project ('Default Project') for client/call associations
  *
  * Uses Prisma's `upsert` pattern so the seed is idempotent — running it
  * multiple times won't create duplicate records.
@@ -31,7 +31,7 @@ export async function seedTestData(prisma: PrismaService) {
     },
   });
 
-  // Upsert default project — referenced by owner and call creation tests
+  // Upsert default project — referenced by client and call creation tests
   const project = await prisma.project.upsert({
     where: { name: 'Default Project' },
     update: {},

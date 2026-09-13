@@ -32,7 +32,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/interfaces/authenticated-user.interface';
 
-@Controller('users')
+@Controller({ path: 'users', version: ['1', '2'] })
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}

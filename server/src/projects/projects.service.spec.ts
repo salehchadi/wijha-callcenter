@@ -79,9 +79,14 @@ describe('ProjectsService', () => {
       expect(result.name).toBe('Renamed');
     });
 
-    it('should throw NotFoundException for non-existent id', async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
-      await expect(service.update(999, { name: 'X' })).rejects.toThrow(NotFoundException);
+    it('should propagate P2025 for non-existent id (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.project.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
+      await expect(service.update(999, { name: 'X' })).rejects.toMatchObject({ code: 'P2025' });
     });
 
     it('should throw ConflictException when renaming to an existing name', async () => {
@@ -106,9 +111,14 @@ describe('ProjectsService', () => {
       expect(prisma.project.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     });
 
-    it('should throw NotFoundException for non-existent id', async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
-      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+    it('should propagate P2025 for non-existent id (mapped to 404 by PrismaExceptionFilter)', async () => {
+      prisma.project.delete.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for a delete.', {
+          code: 'P2025',
+          clientVersion: '7.8.0',
+        }),
+      );
+      await expect(service.remove(999)).rejects.toMatchObject({ code: 'P2025' });
     });
   });
 

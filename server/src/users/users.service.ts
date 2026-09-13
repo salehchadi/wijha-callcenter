@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -106,11 +106,6 @@ export class UsersService {
   }
 
   async update(id: number, dto: UpdateUserDto, allowRoleChange = true): Promise<UserResponseDto> {
-    const existing = await this.prisma.user.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('User not found');
-    }
-
     try {
       const passwordHash = dto.password
         ? await bcrypt.hash(dto.password, 10)
@@ -138,11 +133,6 @@ export class UsersService {
 
 async deactivate(id: number): Promise<UserResponseDto> {
     try {
-      const existing = await this.prisma.user.findUnique({ where: { id } });
-      if (!existing) {
-        throw new NotFoundException('User not found');
-      }
-
       const user = await this.prisma.user.update({
         where: { id },
         data: { role: 'deactivated', passwordHash: '!deactivated!' },
@@ -190,11 +180,6 @@ async deactivate(id: number): Promise<UserResponseDto> {
   }
 
   async uploadProfileImage(userId: number, buffer: Buffer, mime: string): Promise<UserResponseDto> {
-    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!existing) {
-      throw new NotFoundException('User not found');
-    }
-
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { profileImage: new Uint8Array(buffer) as unknown as Uint8Array<ArrayBuffer>, profileMime: mime },
@@ -209,11 +194,6 @@ async deactivate(id: number): Promise<UserResponseDto> {
   }
 
   async deleteProfileImage(userId: number): Promise<UserResponseDto> {
-    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!existing) {
-      throw new NotFoundException('User not found');
-    }
-
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { profileImage: null, profileMime: null },

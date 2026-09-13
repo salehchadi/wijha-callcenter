@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 
-@Controller()
+@Controller({ path: '/', version: ['1', '2'] })
 export class AppController {
   constructor(private prisma: PrismaService) {}
 

@@ -5,7 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ProjectsModule } from './projects/projects.module';
-import { OwnersModule } from './owners/owners.module';
+import { ClientsModule } from './clients/clients.module';
 import { CallsModule } from './calls/calls.module';
 import { SessionsModule } from './sessions/sessions.module';
 import {LoggerMiddleware} from "./logger/logger.middleware";
@@ -17,7 +17,7 @@ import {LoggerMiddleware} from "./logger/logger.middleware";
     AuthModule,
     UsersModule,
     ProjectsModule,
-    OwnersModule,
+    ClientsModule,
     CallsModule,
     SessionsModule,
   ],

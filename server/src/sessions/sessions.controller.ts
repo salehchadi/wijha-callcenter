@@ -20,7 +20,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/interfaces/authenticated-user.interface';
 
-@Controller('sessions')
+@Controller({ path: 'sessions', version: ['1', '2'] })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SessionsController {
   constructor(private sessionsService: SessionsService) {}

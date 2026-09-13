@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 
-@Controller('projects')
+@Controller({ path: 'projects', version: ['1', '2'] })
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
   constructor(private projectsService: ProjectsService) {}

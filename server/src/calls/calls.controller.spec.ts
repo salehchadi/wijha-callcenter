@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { CallsController } from './calls.controller';
 import { CallsService } from './calls.service';
-import { OwnersService } from '@/owners/owners.service';
+import { ClientsService } from '@/clients/clients.service';
+import { ClientType } from '@/clients/dto/client-type.enum';
 import { PrismaService } from '@/prisma/prisma.service';
 import { mockClient, mockNumber, mockClientInfo, mockCallRecord, mockProject } from '@/prisma/mock-data';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -68,7 +69,7 @@ describe('CallsController', () => {
       controllers: [CallsController],
       providers: [
         CallsService,
-        OwnersService,
+        ClientsService,
         { provide: PrismaService, useValue: prisma },
       ],
     })
@@ -126,7 +127,7 @@ describe('CallsController', () => {
   });
 
   describe('GET /calls/next', () => {
-    it('should return next owner with past calls', async () => {
+    it('should return next client with past calls', async () => {
       prisma.callDetailRecord.findMany.mockResolvedValue([
         mockCallRecord({ id: 1n, clientId: 1n, status: 'completed', time: new Date('2024-05-01T10:00:00Z'), client: { clientProjects: [{ project: { id: 1, name: 'Default Project' } }] } }),
         mockCallRecord({ id: 2n, clientId: 1n, status: 'no_answer', time: new Date('2024-05-02T14:00:00Z'), client: { clientProjects: [{ project: { id: 1, name: 'Default Project' } }] } }),
@@ -134,9 +135,9 @@ describe('CallsController', () => {
 
       const result = await controller.getNext({ project_id: '1' }, { id: 1, email: 'a@b.com', role: 'user' });
       expect(result).not.toBeNull();
-      expect(result!.owner.id).toBe(1);
-      expect(result!.owner.name).toBe('John Doe');
-      expect(result!.owner.phones).toHaveLength(1);
+      expect(result!.client.id).toBe(1);
+      expect(result!.client.name).toBe('John Doe');
+      expect(result!.client.phones).toHaveLength(1);
       expect(result!.calls).toHaveLength(2);
       expect(result!.calls[0].status).toBe('completed');
     });
@@ -149,7 +150,7 @@ describe('CallsController', () => {
     });
 
     it('should pass requesting agent id when assigned_only=true', async () => {
-      const spy = jest.spyOn(OwnersService.prototype, 'getNextOwner');
+      const spy = jest.spyOn(ClientsService.prototype, 'getNextClient');
 
       await controller.getNext(
         { project_id: '1', assigned_only: 'true' },
@@ -161,7 +162,7 @@ describe('CallsController', () => {
     });
 
     it('should not scope to agent when assigned_only is absent', async () => {
-      const spy = jest.spyOn(OwnersService.prototype, 'getNextOwner');
+      const spy = jest.spyOn(ClientsService.prototype, 'getNextClient');
 
       await controller.getNext(
         { project_id: '1' },
@@ -173,14 +174,14 @@ describe('CallsController', () => {
     });
 
     it('should pass type query param to service', async () => {
-      const spy = jest.spyOn(OwnersService.prototype, 'getNextOwner');
+      const spy = jest.spyOn(ClientsService.prototype, 'getNextClient');
 
       await controller.getNext(
-        { project_id: '1', type: 'OWNER' },
+        { project_id: '1', type: ClientType.OWNER },
         { id: 1, email: 'a@b.com', role: 'user' },
       );
 
-      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ type: 'OWNER' }));
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ type: ClientType.OWNER }));
       spy.mockRestore();
     });
   });

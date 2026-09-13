@@ -5,25 +5,25 @@ sequenceDiagram
 
     Note over MobileApp,DB: Call Loop (repeats)
     MobileApp->>Server: GET /calls/next?project_id=X
-    Server->>DB: Query next available Owner
-    DB-->>Server: owner + call history
-    alt No owners available
+    Server->>DB: Query next available Client
+    DB-->>Server: client + call history
+    alt No clients available
         Server-->>MobileApp: 204 No Content
-    else Owner found
-        Server-->>MobileApp: { owner, numbers, prev_calls }
+    else Client found
+        Server-->>MobileApp: { client, numbers, prev_calls }
     end
 
-    MobileApp->>Server: POST /calls/calling { owner_id }
-    Server->>DB: UPDATE owner.lastDialedAt
+    MobileApp->>Server: POST /calls/calling { client_id }
+    Server->>DB: UPDATE client.lastDialedAt
     DB-->>Server: ok
     Server-->>MobileApp: { success }
 
     Note over MobileApp: Agent places out-of-band phone call
 
-    MobileApp->>Server: POST /calls { owner_id, status, time, duration?, agent_notes? }
+    MobileApp->>Server: POST /calls { client_id, status, time, duration?, agent_notes? }
     Server->>DB: INSERT call_detail_record
     alt status == not_interested
-        Server->>DB: UPDATE owner.status = 'inactive'
+        Server->>DB: UPDATE client.status = 'inactive'
     end
     DB-->>Server: ok
     Server-->>MobileApp: { id, status }

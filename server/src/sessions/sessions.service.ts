@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import type { CreateSessionDto } from './dto/create-session.dto';
 import type { SessionResponseDto } from './dto/session-response.dto';
@@ -156,22 +157,28 @@ export class SessionsService {
     });
 
     if (existing) {
-      const now = new Date();
-      const duration = Math.round((now.getTime() - existing.firstBeat.getTime()) / 1000);
-      const updated = await this.prisma.userSession.update({
-        where: {
-          agentId_firstBeat: { agentId, firstBeat: existing.firstBeat },
-        },
-        data: { lastBeat: now, duration },
-      });
+      try {
+        const now = new Date();
+        const duration = Math.round((now.getTime() - existing.firstBeat.getTime()) / 1000);
+        const updated = await this.prisma.userSession.update({
+          where: {
+            agentId_firstBeat: { agentId, firstBeat: existing.firstBeat },
+          },
+          data: { lastBeat: now, duration },
+        });
 
-      return {
-        agent_id: updated.agentId,
-        first_beat: updated.firstBeat.toISOString(),
-        last_beat: updated.lastBeat.toISOString(),
-        is_active: true,
-        duration: updated.duration,
-      };
+        return {
+          agent_id: updated.agentId,
+          first_beat: updated.firstBeat.toISOString(),
+          last_beat: updated.lastBeat.toISOString(),
+          is_active: true,
+          duration: updated.duration,
+        };
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')) {
+          throw error;
+        }
+      }
     }
 
     const now = new Date();

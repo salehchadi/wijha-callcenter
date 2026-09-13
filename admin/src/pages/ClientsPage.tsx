@@ -1099,7 +1099,7 @@ export default function ClientsPage() {
                     value={editingClient._raw.agent_id || ""}
                     onChange={(e) => setEditingClient({
                       ...editingClient,
-                      _raw: { ...editingClient._raw, agent_id: e.target.value ? parseInt(e.target.value) : null }
+                      _raw: { ...editingClient._raw, agent_id: e.target.value ? parseInt(e.target.value) : undefined }
                     })}
                   >
                     <option value="">— Unassigned —</option>

@@ -60,7 +60,7 @@ model ActiveSession {
 model Client {
   id                BigInt             @id @default(autoincrement())
   name              String?            @db.VarChar(50)
-  type              String             @db.VarChar(10)
+  type              String?            @db.VarChar(10)
   nextDialAt        DateTime?          @map("next_dial_at")
   agentId           Int?               @map("agent_id")
   callDetailRecords CallDetailRecord[]

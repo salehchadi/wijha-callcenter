@@ -1,6 +1,6 @@
 import { IsOptional, IsString } from 'class-validator';
 
-export class OwnerInfoDto {
+export class ClientInfoDto {
   @IsOptional()
   @IsString()
   key?: string;

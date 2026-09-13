@@ -51,7 +51,7 @@ describe('Validation E2E', () => {
 
   /**
    * Input: POST /api/v1/owners with body missing required 'phones' field
-   *   (CreateOwnerDto requires phones with @ArrayMinSize(1))
+   *   (CreateClientDto requires phones with @ArrayMinSize(1))
    * Expected: HTTP 400 — ValidationPipe rejects missing required field
    */
   it('POST /api/v1/owners without phones returns 400', async () => {
@@ -63,23 +63,23 @@ describe('Validation E2E', () => {
 
   /**
    * Input: PATCH /api/v1/owners/:id with body { type: 123 }
-   *   (UpdateOwnerDto.type expects @IsString, number fails validation)
+   *   (UpdateClientDto.type expects @IsString, number fails validation)
    * Expected: HTTP 400 — ValidationPipe rejects non-string type
    */
   it('PATCH /api/v1/owners/:id with invalid type returns 400', async () => {
-    // First, create an owner to have a valid ID for the PATCH
-    const ownerRes = await app.post('/api/v1/owners')
+    // First, create a client to have a valid ID for the PATCH
+    const clientRes = await app.post('/api/v1/owners')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        name: 'Test Owner',
+        name: 'Test Client',
         project_id: 1,
         phones: [{ phone: '+201012345678' }],
       })
       .expect(201);
-    const ownerId = ownerRes.body.id;
+    const clientId = clientRes.body.id;
 
     // Send invalid type (number instead of string) — should be rejected by ValidationPipe
-    await app.patch(`/api/v1/owners/${ownerId}`)
+    await app.patch(`/api/v1/owners/${clientId}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ type: 123 })
       .expect(400);

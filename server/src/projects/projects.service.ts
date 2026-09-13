@@ -51,11 +51,6 @@ export class ProjectsService {
   }
 
   async update(id: number, dto: UpdateProjectDto): Promise<ProjectResponseDto> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Project not found');
-    }
-
     try {
       return await this.prisma.project.update({ where: { id }, data: dto });
     } catch (error) {
@@ -67,11 +62,6 @@ export class ProjectsService {
   }
 
   async remove(id: number): Promise<void> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Project not found');
-    }
-
     await this.prisma.project.delete({ where: { id } });
   }
 }

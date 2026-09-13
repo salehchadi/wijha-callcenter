@@ -96,7 +96,7 @@ describe('LoggerMiddleware', () => {
     const req = createMockRequest({
       method: 'POST',
       originalUrl: '/api/v1/owners',
-      body: { name: 'Test Owner', phones: [{ phone: '+201012345678' }] },
+      body: { name: 'Test Client', phones: [{ phone: '+201012345678' }] },
     });
     const res = createMockResponse();
     const next = jest.fn();
@@ -175,7 +175,7 @@ describe('LoggerMiddleware', () => {
   });
 
   /**
-   * Input: request with 2 route params { ownerId: '1', projectId: '2' }
+   * Input: request with 2 route params { clientId: '1', projectId: '2' }
    * Expected: console.log called with 'Params:' and the params object
    * (params logging only triggers when more than 1 param is present)
    */
@@ -183,14 +183,14 @@ describe('LoggerMiddleware', () => {
     const req = createMockRequest({
       method: 'PATCH',
       originalUrl: '/api/v1/owners/1/projects/2',
-      params: { ownerId: '1', projectId: '2' },
+      params: { clientId: '1', projectId: '2' },
     });
     const res = createMockResponse();
     const next = jest.fn();
 
     middleware.use(req, res, next);
 
-    expect(consoleSpy).toHaveBeenCalledWith('Params:', { ownerId: '1', projectId: '2' });
+    expect(consoleSpy).toHaveBeenCalledWith('Params:', { clientId: '1', projectId: '2' });
   });
 
   /**
